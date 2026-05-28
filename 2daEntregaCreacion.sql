@@ -570,7 +570,7 @@ CREATE PROCEDURE migrarClientes AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Cliente
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -609,7 +609,7 @@ CREATE PROCEDURE migrarHospedajes AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Hospedaje
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -625,7 +625,7 @@ CREATE PROCEDURE migrarAgencias AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Agencia
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -641,8 +641,9 @@ CREATE PROCEDURE migrarAgentes AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
-		--Codigo
+		INSERT INTO PLATENSE.Agente
+			--Codigo
+			 --Tener en cuenta que ya existe un legajo. Lo utilizamos como PRIMARY KEY?
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
 	END TRY
@@ -657,7 +658,7 @@ CREATE PROCEDURE migrarVuelos AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Vuelo
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -673,7 +674,7 @@ CREATE PROCEDURE migrarEncuestas_satifaccion AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Encuesta_Satisfaccion
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -689,7 +690,7 @@ CREATE PROCEDURE migrarAspectosXEncuestas AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.AspectoXEncuesta
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -705,7 +706,7 @@ CREATE PROCEDURE migrarSolicitudes_cotizacion AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Solicitud_Cotizacion
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -721,7 +722,7 @@ CREATE PROCEDURE migrarCiudades_destino AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Ciudades_destino
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -737,7 +738,7 @@ CREATE PROCEDURE migrarHabitaciones AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Habitacion
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -753,7 +754,7 @@ CREATE PROCEDURE migrarPropuestas_personalizadas AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Propuesta_Personalizada
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -769,14 +770,19 @@ CREATE PROCEDURE migrarVentas AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
-		--Codigo
+		INSERT INTO PLATENSE.Venta
+			SELECT M.Venta_Nro_Venta, M.Cliente_Dni, M.Agente_Legajo, CV.nro_canal, MP.nro_medio,  --De forma provisoria queda así el legajo, debe ser el legajo de PLATENSE.Agente
+			M.Venta_Fecha_Venta, M.Venta_Subtotal, M.Venta_Descuento, M.Venta_Importe_Total
+			FROM gd_esquema.Maestra M
+				JOIN PLATENSE.Canal_venta CV ON M.Venta_Canal_Venta = CV.nombre
+				JOIN PLATENSE.Medio_pago MP ON M.Venta_Medio_Pago = MP.nombre
+
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Ventas migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de ventas',16,1)
 	END CATCH
 END
 
@@ -785,7 +791,7 @@ CREATE PROCEDURE migrarReservas_vuelo AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Reserva_Vuelo
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -801,7 +807,7 @@ CREATE PROCEDURE migrarReservas_excursion AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Reserva_Excursion
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
@@ -817,7 +823,7 @@ CREATE PROCEDURE migrarReservas_habitaciones AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.X
+		INSERT INTO PLATENSE.Reserva_Habitacion
 		--Codigo
 		COMMIT TRANSACTION
 		PRINT 'X migradas con exito'
