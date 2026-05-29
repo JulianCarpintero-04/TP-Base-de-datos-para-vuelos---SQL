@@ -762,9 +762,9 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Habitacion
-		SELECT DISTINCT Habitacion_Nombre, Habitacion_Descripcion, Habitacion_Precio_Noche 
+		SELECT DISTINCT Habitacion_Nombre, Habitacion_Descripcion, Habitacion_Precio_Noche, H.nro_hospedaje
 		FROM gd_esquema.Maestra WHERE Habitacion_Nombre IS NOT NULL
-		JOIN PLATENSE.Habitacion H ON (H.descripcion = Habitacion_Descripcion) -- REVISAR EL JOIN
+		JOIN PLATENSE.Hospedaje H ON (H.precio = Detalle_Venta_Hospedaje_Precio_Unitario)
 		COMMIT TRANSACTION
 		PRINT 'Habitaciones migradas con exito'
 	END TRY
@@ -837,7 +837,7 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Reserva_Excursion
-		SELECT DISTINCT Ve.nro_venta, Ex.nro_vuelo, Detalle_Venta_Excursion_Fecha_Reserva, 
+		SELECT DISTINCT Ve.nro_venta, Ex.nro_excursion, Detalle_Venta_Excursion_Fecha_Reserva, 
 		Detalle_Venta_Excursion_Cant, Detalle_Venta_Excursion_Precio_Unitario,
 		Detalle_Venta_Excursion_Cod_Reserva, Detalle_Venta_Excursion_Subtotal 
 		FROM gd_esquema.Maestra WHERE Detalle_Venta_Excursion_Cod_Reserva  
