@@ -96,7 +96,6 @@ CREATE TABLE PLATENSE.Proveedor (
 
 CREATE TABLE PLATENSE.Provincia (
 	nro_provincia INT IDENTITY(1,1) PRIMARY KEY,
-	nro_pais INT FOREIGN KEY REFERENCES PLATENSE.Pais,
 	nombre VARCHAR(255),
 );
 
@@ -123,19 +122,19 @@ CREATE TABLE PLATENSE.Excursion (
 
 CREATE TABLE PLATENSE.Ciudad (
 	nro_ciudad INT IDENTITY(1,1) PRIMARY KEY,
-	nro_provincia INT FOREIGN KEY REFERENCES PLATENSE.Provincia,
+	nro_pais INT FOREIGN KEY REFERENCES PLATENSE.Provincia,
 	nombre VARCHAR(255)
-	);
+);
 
 CREATE TABLE PLATENSE.Localidad (
-	cod_postal INT IDENTITY(1,1) PRIMARY KEY,
-	nro_ciudad INT FOREIGN KEY REFERENCES PLATENSE.Ciudad,
+	nro_localidad INT IDENTITY(1,1) PRIMARY KEY,
+	nro_provincia INT FOREIGN KEY REFERENCES PLATENSE.Ciudad,
 	nombre VARCHAR(255)
 );
 
 CREATE TABLE PLATENSE.Cliente (
 	nro_cliente INT IDENTITY(1,1) PRIMARY KEY,
-	nro_ciudad INT FOREIGN KEY REFERENCES PLATENSE.Ciudad,
+	nro_localidad INT FOREIGN KEY REFERENCES PLATENSE.Ciudad,
 	nombre VARCHAR(255),
 	apellido VARCHAR(255),
 	dni VARCHAR(255),
@@ -168,7 +167,7 @@ CREATE TABLE PLATENSE.Hospedaje (
 
 CREATE TABLE PLATENSE.Agencia(
 	nro_agencia INT IDENTITY(1,1) PRIMARY KEY,
-	cod_postal INT FOREIGN KEY REFERENCES PLATENSE.Localidad,
+	nro_localidad INT FOREIGN KEY REFERENCES PLATENSE.Localidad,
 	direccion VARCHAR(255),
 	telefono VARCHAR(255),
 	mail VARCHAR(255)
@@ -177,7 +176,7 @@ CREATE TABLE PLATENSE.Agencia(
 CREATE TABLE PLATENSE.Agente (
 	nro_legajo INT IDENTITY(1,1) PRIMARY KEY,
 	nro_agencia INT FOREIGN KEY REFERENCES PLATENSE.Agencia,
-	cod_postal INT FOREIGN KEY REFERENCES PLATENSE.Localidad,
+	nro_localidad INT FOREIGN KEY REFERENCES PLATENSE.Localidad,
 	nombre VARCHAR(255),
 	apellido VARCHAR(255),
 	domicilio VARCHAR(255),
@@ -190,10 +189,12 @@ CREATE TABLE PLATENSE.Agente (
 CREATE TABLE PLATENSE.Vuelo (
 	nro_vuelo INT IDENTITY(1,1) PRIMARY KEY,
 	aerolinea_codigo CHAR(2) FOREIGN KEY REFERENCES PLATENSE.Aerolinea(aerolinea_codigo),
-	nro_aeropuerto_origen CHAR(3) FOREIGN KEY REFERENCES PLATENSE.Aeropuerto(aeropuerto_codigo),
-	nro_aeropuerto_destino CHAR(3) FOREIGN KEY REFERENCES PLATENSE.Aeropuerto(aeropuerto_codigo),
-	fecha_hora_salida DATETIME,
-	fecha_hora_llegada DATETIME,
+	aeropuerto_codigo_origen CHAR(3) FOREIGN KEY REFERENCES PLATENSE.Aeropuerto(aeropuerto_codigo),
+	aeropuerto_codigo_destino CHAR(3) FOREIGN KEY REFERENCES PLATENSE.Aeropuerto(aeropuerto_codigo),
+	fecha_salida DATE,
+	hora_salida TIME,
+	fecha_llegada DATE,
+	hora_llegada TIME,
 	precio DECIMAL(12, 3),
 	duracion TIME,
 	incluye_carry CHAR(1),
@@ -492,7 +493,7 @@ END
 --EXEC migrarAerolineas
 
 
------------------------------PENDIENTE--------------------------------
+
 CREATE PROCEDURE migrarProvincias AS
 BEGIN
 	BEGIN TRY
@@ -504,9 +505,6 @@ BEGIN
 			UNION
 			SELECT DISTINCT M.Cliente_Provincia FROM gd_esquema.Maestra M WHERE Cliente_Provincia IS NOT NULL
 			
-			--De alguna forma debemos conectarlo con el pais, el tema es que en ningun momento se relacionanan de forma directa.
-			--Observamos que hay una relacion entre la provincia y la localidad en agencia, agente y cliente
-
 		COMMIT TRANSACTION
 		PRINT 'Provincias migradas con exito'
 	END TRY
@@ -557,11 +555,11 @@ BEGIN
 			--Se relaciona con provincia
 
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Localidades migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Localidades',16,1)
 	END CATCH
 END
 
@@ -570,14 +568,22 @@ CREATE PROCEDURE migrarClientes AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.Cliente
-		--Codigo
+				INSERT INTO PLATENSE.Cliente (nro_cliente,nombre,apellido,telefono,fecha_nacimiento,mail,nro_localidad,domicilio)
+				SELECT M.Cliente_Dni,M.Cliente_Nombre,M.Cliente_Apellido,
+						M.Cliente_Tel,M.Cliente_Fecha_Nac,M.Cliente_Mail,L.nro_localidad,M.Cliente_Direccion 
+				FROM gd_esquema.Maestra M
+					JOIN PLATENSE.Localidad L ON M.Cliente_Localidad = L.nombre
+				WHERE Cliente_Dni IS NOT NULL AND 
+					  Cliente_Nombre IS NOT NULL AND
+					  Cliente_Apellido IS NOT NULL AND
+					  Cliente_Fecha_Nac IS NOT NULL
+
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Clientes migrados con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Clientes',16,1)
 	END CATCH
 END
 
@@ -596,43 +602,49 @@ BEGIN
 			FROM gd_esquema.Maestra WHERE Aeropuerto_Llegada_Codigo IS NOT NULL
 
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Aeropuertos migrados con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Aeropuertos',16,1)
 	END CATCH
 END
 
---------------------PENDIENTE---------------------
+
 CREATE PROCEDURE migrarHospedajes AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
-		INSERT INTO PLATENSE.Hospedaje
-		--Codigo
+		INSERT INTO PLATENSE.Hospedaje (nro_ciudad, direccion, hora_check_in, hora_check_out, precio, incluye_desayuno, nombre)
+		SELECT DISTINCT C.nro_ciudad, M.Hospedaje_Direccion, M.Hospedaje_Check_In,
+		M.Hospedaje_Check_Out, H.precio_noche, M.Hospedaje_Incluye_Desayuno, M.Hospedaje_Nombre
+		FROM gd_esquema.Maestra M 
+			JOIN PLATENSE.Ciudad C ON C.nombre = M.Hospedaje_Ciudad
+			JOIN PLATENSE.Habitacion H ON H.descripcion = M.Habitacion_Descripcion
+		WHERE M.Hospedaje_Nombre IS NOT NULL;
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Hospedajes migrados con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Hospedajes',16,1)
 	END CATCH
 END
 
-----------------PENDIENTE-----------------------
 CREATE PROCEDURE migrarAgencias AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Agencia
-		--Codigo
+		SELECT DISTINCT Agencia_Nro_Agencia, L.nombre, Agencia_Direccion, Agencia_Telefono, Agencia_Mail
+		FROM gd_esquema.Maestra M WHERE Agencia_Nro_Agencia IS NOT NULL
+		JOIN PLATENSE.Localidad L ON (L.nombre = M.Agencia_Localidad)
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Agencias migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Agencias',16,1)
 	END CATCH
 END
 
@@ -645,43 +657,55 @@ BEGIN
 			--Codigo
 			 --Tener en cuenta que ya existe un legajo. Lo utilizamos como PRIMARY KEY?
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Agentes migrados con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Agentes',16,1)
 	END CATCH
 END
 
-----------------PENDIENTE------------------------
 CREATE PROCEDURE migrarVuelos AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Vuelo
-		--Codigo
+		SELECT DISTINCT M.Aerolinea_Codigo, M.Aeropuerto_Salida_Codigo, M.Aeropuerto_Llegada_Codigo,
+		M.Vuelo_Fecha_Salida, M.Vuelo_Horario_Salida, M.Vuelo_Fecha_Llegada, M.Vuelo_Horario_Llegada,
+		M.Vuelo_Precio, M.Vuelo_Duracion, M.Vuelo_Incluye_Carry, M.Vuelo_Incluye_Valija
+		FROM gd_esquema.Maestra M
+		WHERE M.Aerolinea_Codigo IS NOT NULL AND
+			  M.Aeropuerto_Salida_Codigo IS NOT NULL AND 
+			  M.Aeropuerto_Llegada_Codigo IS NOT NULL
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Vuelos migrados con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Vuelos',16,1)
 	END CATCH
 END
 
------------------PENDIENTE--------------------------
 CREATE PROCEDURE migrarEncuestas_satifaccion AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Encuesta_Satisfaccion
-		--Codigo
+		SELECT DISTINCT M.Encuesta_Codigo_Encuesta, C.nro_cliente, A.nro_agente, 
+		M.Encuesta_Fecha_Encuesta, M.Enccuesta_Comentarios
+		FROM gd_esquema.Maestra M
+			JOIN PLATENSE.Cliente C ON C.dni = M.Cliente_Dni
+			JOIN PLATENSE.Agente A ON A.dni = M.Agente_Dni
+		WHERE M.Encuesta_Codigo_Encuesta IS NOT NULL AND
+			  M.Cliente_Dni IS NOT NULL AND
+			  M.Agente_Dni IS NOT NULL AND
+			  M.Encuesta_Fecha_Encuesta IS NOT NULL
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Encuestas de satisfacción migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Encuestas de satisfacción',16,1)
 	END CATCH
 END
 
@@ -733,19 +757,20 @@ BEGIN
 	END CATCH
 END
 
----------------PENDIENTE-------------------
 CREATE PROCEDURE migrarHabitaciones AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Habitacion
-		--Codigo
+		SELECT DISTINCT Habitacion_Nombre, Habitacion_Descripcion, Habitacion_Precio_Noche 
+		FROM gd_esquema.Maestra WHERE Habitacion_Nombre IS NOT NULL
+		JOIN PLATENSE.Habitacion H ON (H.descripcion = Habitacion_Descripcion) -- REVISAR EL JOIN
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Habitaciones migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Habitaciones',16,1)
 	END CATCH
 END
 
@@ -786,51 +811,67 @@ BEGIN
 	END CATCH
 END
 
----------------PENDIENTE-------------------
 CREATE PROCEDURE migrarReservas_vuelo AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Reserva_Vuelo
-		--Codigo
+		SELECT DISTINCT Ve.nro_venta, Vu.nro_vuelo, Detalle_Venta_Vuelo_Cantidad_Pasajes, 
+		Detalle_Venta_Vuelo_Precio_Unitario, 
+		Detalle_Venta_Vuelo_Subtotal, Detalle_Venta_Vuelo_Cod_Reserva
+		FROM gd_esquema.Maestra WHERE Detalle_Venta_Vuelo_Cod_Reserva 
+		IS NOT NULL
+		JOIN PLATENSE.Vuelo Vu ON (Vu.precio = Detalle_Venta_Vuelo_Precio_Unitario)
+		JOIN PLATENSE.Venta Ve ON (Ve.nro_venta = Venta_Nro_Venta)
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Reservas Vuelos migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Reservas Vuelos',16,1)
 	END CATCH
 END
 
----------------PENDIENTE-------------------
 CREATE PROCEDURE migrarReservas_excursion AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Reserva_Excursion
-		--Codigo
+		SELECT DISTINCT Ve.nro_venta, Ex.nro_vuelo, Detalle_Venta_Excursion_Fecha_Reserva, 
+		Detalle_Venta_Excursion_Cant, Detalle_Venta_Excursion_Precio_Unitario,
+		Detalle_Venta_Excursion_Cod_Reserva, Detalle_Venta_Excursion_Subtotal 
+		FROM gd_esquema.Maestra WHERE Detalle_Venta_Excursion_Cod_Reserva  
+		IS NOT NULL
+		JOIN PLATENSE.Excursion Ex ON (Ex.precio = Detalle_Venta_Excursion_Precio_Unitario)
+		JOIN PLATENSE.Venta Ve ON (Ve.nro_venta = Venta_Nro_Venta)
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Reservas Excursiones migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Reservas Excursiones',16,1)
 	END CATCH
 END
 
----------------PENDIENTE-------------------
 CREATE PROCEDURE migrarReservas_habitaciones AS
 BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 		INSERT INTO PLATENSE.Reserva_Habitacion
-		--Codigo
+		SELECT DISTINCT Ve.nro_venta, H.nro_habitacion,  
+		Detalle_Venta_Hospedaje_Fecha_Desde, Detalle_Venta_Hospedaje_Fecha_Hasta, 
+		Detalle_Venta_Hospedaje_Cantidad, Detalle_Venta_Hospedaje_Precio_Unitario,
+		Detalle_Venta_Hospedaje_Cod_Reserva, Detalle_Venta_Hospedaje_Subtotal 
+		FROM gd_esquema.Maestra WHERE Detalle_Venta_Hospedaje_Cod_Reserva  
+		IS NOT NULL
+		JOIN PLATENSE.Habitacion H ON (H.precio = Detalle_Venta_Hospedaje_Precio_Unitario)
+		JOIN PLATENSE.Venta Ve ON (Ve.nro_venta = Venta_Nro_Venta)
 		COMMIT TRANSACTION
-		PRINT 'X migradas con exito'
+		PRINT 'Reservas Habitaciones migradas con exito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		RAISERROR('Error en la migración de X',16,1)
+		RAISERROR('Error en la migración de Reservas Habitaciones',16,1)
 	END CATCH
 END
 
