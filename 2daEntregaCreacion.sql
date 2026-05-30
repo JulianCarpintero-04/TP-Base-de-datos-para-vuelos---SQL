@@ -1,32 +1,26 @@
--- ==========================================
--- ELIMINACIÓN DE TABLAS EN ORDEN ESTRICTO
--- ==========================================
-
--- 1. Tablas de cruce y reservas finales
 DROP TABLE IF EXISTS PLATENSE.Reserva_Habitacion;
 DROP TABLE IF EXISTS PLATENSE.Reserva_Excursion;
 DROP TABLE IF EXISTS PLATENSE.Reserva_Vuelo;
 DROP TABLE IF EXISTS PLATENSE.AspectoXEncuesta;
 
--- 2. Transacciones comerciales
+
 DROP TABLE IF EXISTS PLATENSE.Venta;
 DROP TABLE IF EXISTS PLATENSE.Propuesta_vuelo;
 DROP TABLE IF EXISTS PLATENSE.Propuesta_hospedaje;
 DROP TABLE IF EXISTS PLATENSE.Propuesta_Personalizada;
 
--- 3. Entidades secundarias y la TABLA FANTASMA
+
 DROP TABLE IF EXISTS PLATENSE.Habitacion;
-DROP TABLE IF EXISTS PLATENSE.Ciudades_destino; -- ¡Agregada para matar la tabla vieja!
 DROP TABLE IF EXISTS PLATENSE.Solicitud_Cotizacion;
 DROP TABLE IF EXISTS PLATENSE.Encuesta_Satisfaccion;
 
--- 4. Operativa y Vuelos
+
 DROP TABLE IF EXISTS PLATENSE.Vuelo;
 DROP TABLE IF EXISTS PLATENSE.Agente;
 DROP TABLE IF EXISTS PLATENSE.Agencia;
 DROP TABLE IF EXISTS PLATENSE.Cliente;
 
--- 5. Bloque Geográfico y Entidades Físicas
+
 DROP TABLE IF EXISTS PLATENSE.Hospedaje;
 DROP TABLE IF EXISTS PLATENSE.Aeropuerto;
 DROP TABLE IF EXISTS PLATENSE.Excursion;
@@ -34,7 +28,7 @@ DROP TABLE IF EXISTS PLATENSE.Localidad;
 DROP TABLE IF EXISTS PLATENSE.Ciudad;
 DROP TABLE IF EXISTS PLATENSE.Aerolinea;
 
--- 6. Tablas Base
+
 DROP TABLE IF EXISTS PLATENSE.Provincia;
 DROP TABLE IF EXISTS PLATENSE.Proveedor;
 DROP TABLE IF EXISTS PLATENSE.Estado;
@@ -46,10 +40,9 @@ DROP TABLE IF EXISTS PLATENSE.Pais;
 
 DROP SCHEMA IF EXISTS PLATENSE;
 GO
--- ==========================================
--- NIVEL 1: TABLAS BASE (INDEPENDIENTES)
--- ==========================================
-GO
+
+
+
 CREATE SCHEMA PLATENSE
 GO
 
@@ -91,9 +84,7 @@ CREATE TABLE PLATENSE.Proveedor (
 	telefono VARCHAR(255)
 ); 
 
--- ==========================================
--- NIVEL 2: PRIMER NIVEL DE DEPENDENCIA
--- ==========================================
+
 
 CREATE TABLE PLATENSE.Provincia (
 	nro_provincia INT IDENTITY(1,1) PRIMARY KEY,
@@ -117,9 +108,7 @@ CREATE TABLE PLATENSE.Excursion (
 	descripcion VARCHAR(255)
 );
 
--- ==========================================
--- NIVEL 3: BLOQUE GEOGRÁFICO Y ENTIDADES
--- ==========================================
+
 
 CREATE TABLE PLATENSE.Ciudad (
 	nro_ciudad INT IDENTITY(1,1) PRIMARY KEY,
@@ -162,9 +151,7 @@ CREATE TABLE PLATENSE.Hospedaje (
 	nombre VARCHAR(255)
 ); 
 
--- ==========================================
--- NIVEL 4: COMERCIAL, AGENTES Y VUELOS
--- ==========================================
+
 
 CREATE TABLE PLATENSE.Agencia(
 	nro_agencia INT IDENTITY(1,1) PRIMARY KEY,
@@ -217,9 +204,7 @@ CREATE TABLE PLATENSE.AspectoXEncuesta (
 	PRIMARY KEY (tipo_aspecto, nro_encuesta)
 );
 
--- ==========================================
--- NIVEL 5: SOLICITUDES Y PROPUESTAS
--- ==========================================
+
 
 CREATE TABLE PLATENSE.Solicitud_Cotizacion (
 	nro_solicitud INT PRIMARY KEY,
@@ -259,7 +244,6 @@ CREATE TABLE PLATENSE.Propuesta_Personalizada (
 	importe_total DECIMAL(12,3),
 );
 
-
 CREATE TABLE PLATENSE.Propuesta_vuelo (
 	nro_propuesta_vuelo INT IDENTITY(1,1) PRIMARY KEY,
 	nro_propuesta INT FOREIGN KEY REFERENCES PLATENSE.Propuesta_Personalizada,
@@ -278,9 +262,7 @@ CREATE TABLE PLATENSE.Propuesta_hospedaje (
 	Subtotal DECIMAL(12,3)
 )
 
--- ==========================================
--- NIVEL 6: VENTAS Y RESERVAS
--- ==========================================
+
 
 CREATE TABLE PLATENSE.Venta (
 	nro_venta INT PRIMARY KEY,
@@ -335,6 +317,7 @@ CREATE TABLE PLATENSE.Reserva_Habitacion (
 GO
 
 
+
 DROP PROCEDURE IF EXISTS migrarPaises
 DROP PROCEDURE IF EXISTS migrarAlianzas
 DROP PROCEDURE IF EXISTS migrarAspectos
@@ -365,9 +348,10 @@ DROP PROCEDURE IF EXISTS migrarReservas_habitaciones
 DROP PROCEDURE IF EXISTS migrarTODO
 DROP PROCEDURE IF EXISTS migrarPropuesta_hospedaje
 DROP PROCEDURE IF EXISTS migrarPropuesta_vuelo
-
 GO
---Migración de datos
+
+
+
 CREATE PROCEDURE migrarPaises AS
 BEGIN
 	BEGIN TRY
@@ -385,9 +369,9 @@ BEGIN
 		RAISERROR('Error en la migración de paises', 16, 1)
 	END CATCH
 END
+GO
 
 
-Go
 CREATE PROCEDURE migrarAlianzas AS
 BEGIN
 	BEGIN TRY
@@ -399,9 +383,9 @@ BEGIN
 		RAISERROR('Error en la migración de alianzas',16,1)
 	END CATCH
 END
+GO
 
 
-go
 CREATE PROCEDURE migrarAspectos AS
 BEGIN
 	BEGIN TRY
@@ -413,7 +397,9 @@ BEGIN
 		RAISERROR('Error en la migración de aspectos',16,1)
 	END CATCH
 END
-go
+GO
+
+
 CREATE PROCEDURE migrarCanales_venta AS
 BEGIN
 	BEGIN TRY
@@ -425,8 +411,9 @@ BEGIN
 		RAISERROR('Error en la migración de canales de venta',16,1)
 	END CATCH
 END
+GO
 
-go
+
 CREATE PROCEDURE migrarMedios_pago AS
 BEGIN
 	BEGIN TRY
@@ -438,8 +425,9 @@ BEGIN
 		RAISERROR('Error en la migración de medios de pago',16,1)
 	END CATCH
 END
+GO
 
-go
+
 CREATE PROCEDURE migrarEstados AS
 BEGIN
 	BEGIN TRY
@@ -451,8 +439,9 @@ BEGIN
 		RAISERROR('Error en la migración de estados',16,1)
 	END CATCH
 END
+GO
 
-go
+
 CREATE PROCEDURE migrarProveedores AS
 BEGIN
 	BEGIN TRY
@@ -465,8 +454,9 @@ BEGIN
 		RAISERROR('Error en la migración de proveedores',16,1)
 	END CATCH
 END
+GO
 
-go
+
 CREATE PROCEDURE migrarExcursiones AS
 BEGIN
 	BEGIN TRY
@@ -486,9 +476,9 @@ BEGIN
 		RAISERROR('Error en la migración de excursiones',16,1)
 	END CATCH
 END
+GO
 
 
-go
 CREATE PROCEDURE migrarAerolineas AS
 BEGIN
 	BEGIN TRY
@@ -504,10 +494,9 @@ BEGIN
 		RAISERROR('Error en la migración de aerolineas',16,1)
 	END CATCH
 END
+GO
 
 
-
-go
 CREATE PROCEDURE migrarProvincias AS
 BEGIN
 	BEGIN TRY
@@ -524,8 +513,9 @@ BEGIN
 		RAISERROR('Error en la migración de provincias',16,1)
 	END CATCH
 END
+GO
 
-go
+
 CREATE PROCEDURE migrarCiudades AS
 BEGIN
 	BEGIN TRY
@@ -549,7 +539,8 @@ BEGIN
 		RAISERROR('Error en la migración de ciudades',16,1)
 	END CATCH
 END
-go
+GO
+
 
 
 CREATE PROCEDURE migrarLocalidades AS
@@ -580,7 +571,8 @@ BEGIN
 		RAISERROR('Error en la migración de Localidades',16,1)
 	END CATCH
 END
-go
+GO
+
 
 CREATE PROCEDURE migrarClientes AS
 BEGIN
@@ -602,7 +594,8 @@ BEGIN
 		RAISERROR('Error en la migración de Clientes',16,1)
 	END CATCH
 END
-go
+GO
+
 
 CREATE PROCEDURE migrarAeropuertos AS
 BEGIN
@@ -624,7 +617,9 @@ BEGIN
 		RAISERROR('Error en la migración de Aeropuertos',16,1)
 	END CATCH
 END
-go
+GO
+
+
 
 CREATE PROCEDURE migrarHospedajes AS
 BEGIN
@@ -642,7 +637,8 @@ BEGIN
 		RAISERROR('Error en la migración de Hospedajes',16,1)
 	END CATCH
 END
-go
+GO
+
 
 CREATE PROCEDURE migrarAgencias AS
 BEGIN
@@ -661,7 +657,8 @@ BEGIN
 		RAISERROR('Error en la migración de Agencias',16,1)
 	END CATCH
 END
-go
+GO
+
 
 CREATE PROCEDURE migrarAgentes AS
 BEGIN
@@ -682,7 +679,8 @@ BEGIN
 		RAISERROR('Error en la migración de Agentes',16,1)
 	END CATCH
 END
-go
+GO
+
 
 CREATE PROCEDURE migrarVuelos AS
 BEGIN
@@ -705,7 +703,8 @@ BEGIN
 		RAISERROR('Error en la migración de Vuelos',16,1)
 	END CATCH
 END
-go
+GO
+
 
 CREATE PROCEDURE migrarEncuestas_satifaccion AS
 BEGIN
@@ -728,7 +727,8 @@ BEGIN
 		RAISERROR('Error en la migración de Encuestas de satisfacción',16,1)
 	END CATCH
 END
-go
+GO
+
 
 CREATE PROCEDURE migrarAspectosXEncuestas AS
 BEGIN
@@ -744,7 +744,9 @@ BEGIN
 		RAISERROR('Error en la migración de AspectoXEncuesta',16,1)
 	END CATCH
 END
-go
+GO
+
+
 CREATE PROCEDURE migrarSolicitudes_cotizacion AS
 BEGIN
 	BEGIN TRY
@@ -771,8 +773,9 @@ BEGIN
 		RAISERROR('Error en la migración de Solicitud Cotizacion',16,1)
 	END CATCH
 END
+GO
 
-go
+
 CREATE PROCEDURE migrarHabitaciones AS
 BEGIN
 	BEGIN TRY
@@ -788,12 +791,9 @@ BEGIN
 		RAISERROR('Error en la migración de Habitaciones',16,1)
 	END CATCH
 END
-go
+GO
 
 
--- select distinct Solicitud_Nro_Solicitud from gd_esquema.Maestra
-
--- REVISAR
 CREATE PROCEDURE migrarPropuestas_personalizadas AS
 BEGIN
 	BEGIN TRY
@@ -856,8 +856,6 @@ END
 GO
 
 
-
-
 CREATE PROCEDURE migrarVentas AS
 BEGIN
 	BEGIN TRY
@@ -875,7 +873,9 @@ BEGIN
 		RAISERROR('Error en la migración de ventas',16,1)
 	END CATCH
 END
-go
+GO
+
+
 CREATE PROCEDURE migrarReservas_vuelo AS
 BEGIN
 	BEGIN TRY
@@ -895,7 +895,9 @@ BEGIN
 		RAISERROR('Error en la migración de Reservas Vuelos',16,1)
 	END CATCH
 END
-go
+GO
+
+
 CREATE PROCEDURE migrarReservas_excursion AS
 BEGIN
 	BEGIN TRY
@@ -915,8 +917,9 @@ BEGIN
 		RAISERROR('Error en la migración de Reservas Excursiones',16,1)
 	END CATCH
 END
+GO
 
-go
+
 CREATE PROCEDURE migrarReservas_habitaciones AS
 BEGIN
 	BEGIN TRY
@@ -939,6 +942,7 @@ BEGIN
 	END CATCH
 END
 GO
+
 
 CREATE PROCEDURE migrarTODO AS
 BEGIN
