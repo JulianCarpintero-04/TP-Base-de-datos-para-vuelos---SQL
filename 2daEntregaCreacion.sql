@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS PLATENSE.Reserva_Habitacion;
 DROP TABLE IF EXISTS PLATENSE.Reserva_Excursion;
 DROP TABLE IF EXISTS PLATENSE.Reserva_Vuelo;
 DROP TABLE IF EXISTS PLATENSE.AspectoXEncuesta;
+DROP TABLE IF EXISTS PLATENSE.CiudadXSolicitud;
 
 
 DROP TABLE IF EXISTS PLATENSE.Venta;
@@ -204,13 +205,10 @@ CREATE TABLE PLATENSE.AspectoXEncuesta (
 	PRIMARY KEY (tipo_aspecto, nro_encuesta)
 );
 
-
-
 CREATE TABLE PLATENSE.Solicitud_Cotizacion (
 	nro_solicitud INT PRIMARY KEY,
 	nro_cliente INT FOREIGN KEY REFERENCES PLATENSE.Cliente(nro_cliente),
 	nro_agente INT FOREIGN KEY REFERENCES PLATENSE.Agente(nro_legajo),
-	nro_ciudad INT FOREIGN KEY REFERENCES PLATENSE.Ciudad(nro_ciudad),
 	fecha_solicitud DATE,
 	fecha_inicio_tentativa DATE,
 	fecha_fin_tentativa DATE,
@@ -218,6 +216,12 @@ CREATE TABLE PLATENSE.Solicitud_Cotizacion (
 	cantidad_pasajeros INT,
 	observaciones VARCHAR(255),
 	presupuesto_estimado DECIMAL(12, 3)
+);
+
+CREATE TABLE PLATENSE.CiudadXSolicitud (
+	nro_ciudad INT FOREIGN KEY REFERENCES PLATENSE.Ciudad(nro_ciudad),
+	nro_solicitud INT FOREIGN KEY REFERENCES PLATENSE.Solicitud_Cotizacion(nro_solicitud),
+	PRIMARY KEY (nro_ciudad, nro_solicitud)
 );
 
 CREATE TABLE PLATENSE.Habitacion (
@@ -316,8 +320,7 @@ CREATE TABLE PLATENSE.Reserva_Habitacion (
 );
 GO
 
-
-
+DROP PROCEDURE IF EXISTS migrarTODO
 DROP PROCEDURE IF EXISTS migrarPaises
 DROP PROCEDURE IF EXISTS migrarAlianzas
 DROP PROCEDURE IF EXISTS migrarAspectos
@@ -345,9 +348,9 @@ DROP PROCEDURE IF EXISTS migrarVentas
 DROP PROCEDURE IF EXISTS migrarReservas_vuelo
 DROP PROCEDURE IF EXISTS migrarReservas_excursion
 DROP PROCEDURE IF EXISTS migrarReservas_habitaciones
-DROP PROCEDURE IF EXISTS migrarTODO
 DROP PROCEDURE IF EXISTS migrarPropuesta_hospedaje
 DROP PROCEDURE IF EXISTS migrarPropuesta_vuelo
+DROP PROCEDURE IF EXISTS migrarCiudadXSolicitud
 GO
 
 
@@ -752,19 +755,18 @@ BEGIN
 	BEGIN TRY
 		INSERT INTO PLATENSE.Solicitud_Cotizacion (
 			nro_solicitud, nro_cliente, nro_agente, fecha_solicitud, fecha_inicio_tentativa, fecha_fin_tentativa,
-			cantidad_dias, cantidad_pasajeros, observaciones, presupuesto_estimado,nro_ciudad
+			cantidad_dias, cantidad_pasajeros, observaciones, presupuesto_estimado
 		)
 		SELECT DISTINCT Solicitud_Nro_Solicitud, C.nro_cliente, A.nro_legajo,
 		Solicitud_Fecha_Solicitud, Solicitud_Fecha_Inicio_Tentativa, Solicitud_Fecha_Fin_Tentativa,
-		Detalle_Solicitud_Cant_Dias_Aprox, Solicitud_Cant_Pax, Solicitud_Observaciones, Solicitud_Presupuesto_Estimado,Ci.nro_ciudad
+		Detalle_Solicitud_Cant_Dias_Aprox, Solicitud_Cant_Pax, Solicitud_Observaciones, Solicitud_Presupuesto_Estimado
 		FROM gd_esquema.Maestra 
 		JOIN PLATENSE.Cliente C ON (C.dni = Cliente_Dni)
 		JOIN PLATENSE.Agente A  ON (A.nro_legajo = Agente_Legajo)
-		JOIN PLATENSE.Ciudad Ci ON (Ci.nombre = Detalle_Solicitud_Ciudad)
 		WHERE Solicitud_Nro_Solicitud IS NOT NULL AND
 		Cliente_Dni IS NOT NULL AND
 		Agente_Legajo IS NOT NULL AND
-		Detalle_Solicitud_Ciudad IS NOT NULL AND
+		Detalle_Solicitud_Cant_Dias_Aprox IS NOT NULL AND
 		c.nombre = Cliente_Nombre
 
 		PRINT 'Solicitud Cotizacion migradas con exito'
@@ -943,6 +945,22 @@ BEGIN
 END
 GO
 
+CREATE PROCEDURE migrarCiudadXSolicitud AS
+BEGIN
+	BEGIN TRY
+		INSERT INTO PLATENSE.CiudadXSolicitud (nro_ciudad, nro_solicitud)
+			SELECT DISTINCT  c.nro_ciudad , Solicitud_Nro_Solicitud
+			FROM gd_esquema.Maestra 
+			JOIN PLATENSE.Ciudad c ON Detalle_Solicitud_Ciudad = nombre
+			WHERE Solicitud_Nro_Solicitud IS NOT NULL
+			PRINT 'CiudadesXSolicitud migradas con exito'
+	END TRY
+	BEGIN CATCH
+		RAISERROR('Error en la migración de CiudadesXSolicitud',16,1)
+	END CATCH
+END
+GO
+
 
 CREATE PROCEDURE migrarTODO AS
 BEGIN
@@ -973,6 +991,7 @@ BEGIN
 		EXEC migrarPropuestas_personalizadas
 		EXEC migrarPropuesta_hospedaje
 		EXEC migrarPropuesta_vuelo
+		EXEC migrarCiudadXSolicitud
 		EXEC migrarVentas
 		EXEC migrarReservas_vuelo
 		EXEC migrarReservas_excursion
@@ -984,7 +1003,7 @@ BEGIN
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
 		
-		RAISERROR('Error en la migración de todas las entidades: ',16,1)
+		RAISERROR('Error en la migración de todas las entidades',16,1)
 	END CATCH
 END
 GO
