@@ -104,8 +104,9 @@ SELECT DISTINCT YEAR(fecha_nacimiento) AS Anio, MONTH(fecha_nacimiento) AS Mes F
 
 --------------------VIEWS--------------------
 CREATE VIEW BI_Ticket_Promedio AS
-SELECT T.a
-FROM BI_Hecho_Venta V JOIN BI_DimTiempo T ON
+SELECT T.anio, T.mes,
+FROM BI_Hecho_Venta V JOIN BI_DimTiempo T ON V.id_tiempo = T.id_Tiempo
+                      JOIN BI_
 
 CREATE VIEW BI_Distribución_Facturación AS
 
