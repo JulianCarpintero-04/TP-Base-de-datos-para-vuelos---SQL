@@ -85,12 +85,12 @@ CREATE TABLE BI_Hecho_Evaluacion(
 );
 
 INSERT INTO BI_DimTiempo VALUES ();
-INSERT INTO BI_DimRangoEtario VALUES ("Menores de 25 años"), ("Entre 25 y 35 anios"), ("Entre 35 y 50 anios"), ("Mayores de 50 anios");
-INSERT INTO BI_DimTemporada VALUES ("Verano"), ("Otonio"), ("Invierno"), ("Primavera");
-INSERT INTO BI_DimTipoSerivicio VALUES ("Venta Directa"), ("Propuesta a Medida");
-INSERT INTO BI_DimCanalVenta VALUES ("Telefono"), ("Whatsapp"), ("Mail"), ("Presencial");
-INSERT INTO BI_DimEstado VALUES ("Aceptado"), ("Rechazado");
-INSERT INTO BI_DimAspecto VALUES ("Claridad de informacion"), ("Efectividad"), ("Rapidez de respuesta"), ("Atencion del agente"), ("Satisfaccion general");
+INSERT INTO BI_DimRangoEtario (descripcion) VALUES ('Menores de 25 años'), ('Entre 25 y 35 anios'), ('Entre 35 y 50 anios'), ('Mayores de 50 anios');
+INSERT INTO BI_DimTemporada (descripcion) VALUES ('Verano'), ('Otonio'), ('Invierno'), ('Primavera');
+INSERT INTO BI_DimTipoServicio (descripcion) VALUES ('Venta Directa'), ('Propuesta a Medida');
+INSERT INTO BI_DimCanalVenta (descripcion) VALUES ('Telefono'), ('Whatsapp'), ('Mail'), ('Presencial');
+INSERT INTO BI_DimEstado (descripcion) VALUES ('Aceptado'), ('Rechazado');
+INSERT INTO BI_DimAspecto (descripcion) VALUES ('Claridad de informacion'), ('Efectividad'), ('Rapidez de respuesta'), ('Atencion del agente'), ('Satisfaccion general');
 
 INSERT INTO BI_Hecho_Evaluacion VALUES ();
 INSERT INTO BI_Hecho_Propuesta VALUES ();
