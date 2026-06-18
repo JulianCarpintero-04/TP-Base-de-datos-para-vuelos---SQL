@@ -38,17 +38,17 @@ CREATE TABLE BI_DimAspecto (
 );
 
 CREATE TABLE BI_Hecho_Venta(
-    UniqueID INT IDENTITY(1,1) PRIMARY KEY,
+    id_hecho_venta INT IDENTITY(1,1) PRIMARY KEY,
     id_tiempo INT REFERENCES BI_DimTiempo(id_Tiempo),
     id_canal_venta INT REFERENCES BI_DimCanalVenta(id_Canal_Venta),
     id_rango_etario_cliente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
     id_rango_etario_agente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
     id_tipo_servicio INT REFERENCES BI_DimTipoServicio(id_Tipo_Servicio),
-    precio_venta DECIMAL(18,2)
+    importe_total_venta DECIMAL(18,2)
 );
 
 CREATE TABLE BI_Hecho_Solicitud(
-    UniqueID INT IDENTITY(1,1) PRIMARY KEY,
+    id_hecho_solicitud INT IDENTITY(1,1) PRIMARY KEY,
     id_tiempo INT REFERENCES BI_DimTiempo(id_Tiempo),
     id_temporada INT REFERENCES BI_DimTemporada(id_Temporada),
     id_rango_etario_cliente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
@@ -56,7 +56,7 @@ CREATE TABLE BI_Hecho_Solicitud(
 );
 
 CREATE TABLE BI_Hecho_Propuesta(
-    UniqueID INT IDENTITY(1,1) PRIMARY KEY,
+    id_hecho_propuesta INT IDENTITY(1,1) PRIMARY KEY,
     id_tiempo INT REFERENCES BI_DimTiempo(id_Tiempo),
     id_estado INT REFERENCES BI_DimEstadoPropuesta(id_Estado_Propuesta),
     id_temporada INT REFERENCES BI_DimTemporada(id_Temporada),
