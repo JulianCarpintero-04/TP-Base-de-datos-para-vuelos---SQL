@@ -224,7 +224,7 @@ GO
 
 CREATE VIEW BI_Ticket_Promedio AS
 SELECT T.anio, T.mes, R.descripcion AS rango_etario_cliente, C.descripcion canal_venta,
-        CAST(AVG(V.importe_total_venta) AS DECIMAL(18,2)) ticket_promedio 
+        AVG(V.importe_total_venta * 1.0) ticket_promedio 
 FROM BI_Hecho_Venta V JOIN BI_DimTiempo T ON (V.id_tiempo = T.id_Tiempo)
                       JOIN BI_DimRangoEtario R ON (V.id_rango_etario_cliente = R.id_Rango_Etario)
                       JOIN BI_DimCanalVenta C ON (V.id_canal_venta = C.id_Canal_Venta)
@@ -280,14 +280,14 @@ GROUP BY t.mes, r.descripcion;
 GO
 
 CREATE VIEW BI_Desvío_Presupuesto_Promedio AS
-SELECT T.anio, T.cuatrimestre, CAST(AVG(P.desvio_precio) AS DECIMAL(18,2)) desvio_presupuesto_promedio
+SELECT T.anio, T.cuatrimestre, AVG(P.desvio_precio * 1.0) desvio_presupuesto_promedio
 FROM BI_Hecho_Propuesta P JOIN BI_DimTiempo T ON (P.id_tiempo = T.id_Tiempo)
 GROUP BY T.anio, T.cuatrimestre;
 GO
 
 CREATE VIEW BI_Ranking_Aspectos_Valorados AS
 SELECT T.anio, T.cuatrimestre, A.descripcion AS aspecto,
-        CAST(AVG(CAST(E.puntaje AS DECIMAL(18,2))) AS DECIMAL(18,2)) puntaje_promedio,
+        AVG(E.puntaje * 1.0) puntaje_promedio,
         RANK() OVER ( --No se puede usar un ORDER BY suelto al final para views 
             PARTITION BY T.anio, T.cuatrimestre 
             ORDER BY CAST(AVG(CAST(E.puntaje AS DECIMAL(18,2))) AS DECIMAL(18,2)) DESC
@@ -299,7 +299,7 @@ GO
 
 CREATE VIEW BI_Satisfacción_Promedio_Por_Agente AS
 SELECT T.anio, T.mes, R.descripcion AS rango_etario_agente,
-        CAST(AVG(CAST(E.puntaje AS DECIMAL(18,2))) AS DECIMAL(18,2)) satisfaccion_promedio
+        CAST(E.puntaje * 1.0) satisfaccion_promedio
 FROM BI_Hecho_Evaluacion E JOIN BI_DimTiempo T ON (E.id_tiempo = T.id_Tiempo)
                            JOIN BI_DimRangoEtario R ON (E.id_rango_etario_agente = R.id_Rango_Etario)
 GROUP BY T.anio, T.mes, R.descripcion;
