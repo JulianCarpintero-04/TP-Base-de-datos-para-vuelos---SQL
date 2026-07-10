@@ -52,40 +52,44 @@ CREATE TABLE BI_DimAspecto (
 );
 
 CREATE TABLE BI_Hecho_Venta(
-    id_hecho_venta INT IDENTITY(1,1) PRIMARY KEY,
-    id_tiempo INT REFERENCES BI_DimTiempo(id_Tiempo),
-    id_canal_venta INT REFERENCES BI_DimCanalVenta(id_Canal_Venta),
+    id_hecho_venta          INT IDENTITY(1,1) PRIMARY KEY,
+    id_tiempo               INT REFERENCES BI_DimTiempo(id_Tiempo),
+    id_canal_venta          INT REFERENCES BI_DimCanalVenta(id_Canal_Venta),
     id_rango_etario_cliente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
-    id_rango_etario_agente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
-    id_tipo_servicio INT REFERENCES BI_DimTipoServicio(id_Tipo_Servicio),
-    importe_total_venta DECIMAL(18,2)
+    id_rango_etario_agente  INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
+    id_tipo_servicio        INT REFERENCES BI_DimTipoServicio(id_Tipo_Servicio),
+    total_facturado         DECIMAL(18,2),
+    cantidad_ventas         INT
 );
 
 CREATE TABLE BI_Hecho_Solicitud(
-    id_hecho_solicitud INT IDENTITY(1,1) PRIMARY KEY,
-    id_tiempo INT REFERENCES BI_DimTiempo(id_Tiempo),
-    id_temporada INT REFERENCES BI_DimTemporada(id_Temporada),
+    id_hecho_solicitud      INT IDENTITY(1,1) PRIMARY KEY,
+    id_tiempo               INT REFERENCES BI_DimTiempo(id_Tiempo),
+    id_temporada            INT REFERENCES BI_DimTemporada(id_Temporada),
     id_rango_etario_cliente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
-    dias_anticipacion INT
+    suma_dias_anticipacion  INT,
+    cantidad_solicitudes    INT
 );
 
 CREATE TABLE BI_Hecho_Propuesta(
-    id_hecho_propuesta INT IDENTITY(1,1) PRIMARY KEY,
-    id_tiempo INT REFERENCES BI_DimTiempo(id_Tiempo),
-    id_estado INT REFERENCES BI_DimEstado(id_Estado_Propuesta),
-    id_temporada INT REFERENCES BI_DimTemporada(id_Temporada),
-    id_rango_etario_agente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
-    importe DECIMAL(18,2),
-    dias_transcurridos_emision INT,
-    desvio_precio DECIMAL(18,2)
+    id_hecho_propuesta      INT IDENTITY(1,1) PRIMARY KEY,
+    id_tiempo               INT REFERENCES BI_DimTiempo(id_Tiempo),
+    id_estado               INT REFERENCES BI_DimEstado(id_Estado_Propuesta),
+    id_temporada            INT REFERENCES BI_DimTemporada(id_Temporada),
+    id_rango_etario_agente  INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
+    suma_importe            DECIMAL(18,2),
+    suma_dias_transcurridos INT,
+    suma_desvio_precio      DECIMAL(18,2),
+    cantidad_propuestas     INT
 );
 
 CREATE TABLE BI_Hecho_Evaluacion(
-  id_hecho_evaluacion INT IDENTITY(1,1) PRIMARY KEY,
-  id_tiempo INT REFERENCES BI_DimTiempo(id_Tiempo),
-  id_aspecto INT REFERENCES BI_DimAspecto(id_Aspecto),
-  id_rango_etario_agente INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
-  puntaje INT
+    id_hecho_evaluacion     INT IDENTITY(1,1) PRIMARY KEY,
+    id_tiempo               INT REFERENCES BI_DimTiempo(id_Tiempo),
+    id_aspecto              INT REFERENCES BI_DimAspecto(id_Aspecto),
+    id_rango_etario_agente  INT REFERENCES BI_DimRangoEtario(id_Rango_Etario),
+    suma_puntaje            INT,
+    cantidad_evaluaciones   INT
 );
 
 
@@ -150,64 +154,81 @@ INSERT INTO BI_DimAspecto (descripcion)
 
 
 
-INSERT INTO BI_Hecho_Solicitud (id_tiempo, id_temporada, id_rango_etario_cliente, dias_anticipacion)
-SELECT T.id_Tiempo,Temp.id_Temporada,R.id_Rango_Etario,
-    DATEDIFF(DAY, S.fecha_solicitud, S.fecha_inicio_tentativa) 
-FROM PLATENSE.Solicitud_Cotizacion S JOIN PLATENSE.Cliente C ON S.nro_cliente = C.nro_cliente
-                                     JOIN BI_DimTiempo T ON T.anio = YEAR(S.fecha_solicitud) AND T.mes = MONTH(S.fecha_solicitud)
-                                     JOIN BI_DimTemporada Temp ON Temp.descripcion = (
-                                            CASE 
-                                                WHEN MONTH(S.fecha_solicitud) BETWEEN 1 AND 3 THEN 'Verano'
-                                                WHEN MONTH(S.fecha_solicitud) BETWEEN 4 AND 6 THEN 'Otoño'
-                                                WHEN MONTH(S.fecha_solicitud) BETWEEN 7 AND 9 THEN 'Invierno'
-                                                WHEN MONTH(S.fecha_solicitud) BETWEEN 10 AND 12 THEN 'Primavera'
-                                            END
-                                        )
-                                     JOIN BI_DimRangoEtario R ON DATEDIFF(YEAR, C.fecha_nacimiento, S.fecha_solicitud) BETWEEN R.rango_inicio AND R.rango_fin;
-GO
+INSERT INTO BI_Hecho_Solicitud (
+    id_tiempo, id_temporada, id_rango_etario_cliente, suma_dias_anticipacion, cantidad_solicitudes
+    )
+SELECT T.id_Tiempo, Temp.id_Temporada, R.id_Rango_Etario,
+    SUM(DATEDIFF(DAY, S.fecha_solicitud, S.fecha_inicio_tentativa)) suma_dias_anticipacion,
+    COUNT(*) cantidad_solicitudes
+FROM PLATENSE.Solicitud_Cotizacion S 
+    JOIN PLATENSE.Cliente   C ON S.nro_cliente = C.nro_cliente
+    JOIN BI_DimTiempo       T ON T.anio = YEAR(S.fecha_solicitud) AND T.mes = MONTH(S.fecha_solicitud)
+    JOIN BI_DimTemporada Temp ON Temp.descripcion = (
+            CASE 
+                WHEN MONTH(S.fecha_solicitud) BETWEEN 1 AND 3 THEN 'Verano'
+                WHEN MONTH(S.fecha_solicitud) BETWEEN 4 AND 6 THEN 'Otoño'
+                WHEN MONTH(S.fecha_solicitud) BETWEEN 7 AND 9 THEN 'Invierno'
+                WHEN MONTH(S.fecha_solicitud) BETWEEN 10 AND 12 THEN 'Primavera'
+            END
+        )
+    JOIN BI_DimRangoEtario R ON DATEDIFF(YEAR, C.fecha_nacimiento, S.fecha_solicitud) BETWEEN R.rango_inicio AND R.rango_fin
+GROUP BY T.id_Tiempo, Temp.id_Temporada, R.id_Rango_Etario;
 
-INSERT INTO BI_Hecho_Venta (id_tiempo, id_canal_venta, id_rango_etario_cliente,
-                            id_rango_etario_agente, id_tipo_servicio, importe_total_venta)
-SELECT T.id_Tiempo, CV2.id_Canal_Venta, RC.id_Rango_Etario, RA.id_Rango_Etario, TS.id_Tipo_Servicio, V.importe_total
-FROM PLATENSE.Venta V JOIN PLATENSE.Cliente C ON V.nro_cliente = C.nro_cliente
-                      JOIN PLATENSE.Agente A ON V.nro_agente = A.nro_legajo
-                      JOIN PLATENSE.Canal_venta CV1 ON V.nro_canal_venta = CV1.nro_canal
-                      JOIN BI_DimCanalVenta CV2 ON CV1.nombre = CV2.descripcion
-                      JOIN BI_DimTiempo T ON T.anio = YEAR(V.fecha) AND T.mes = MONTH(V.fecha)
-                      JOIN BI_DimRangoEtario RC ON DATEDIFF(YEAR, C.fecha_nacimiento, V.fecha) BETWEEN RC.rango_inicio AND RC.rango_fin
-                      JOIN BI_DimRangoEtario RA ON DATEDIFF(YEAR, A.fecha_nacimiento, V.fecha) BETWEEN RA.rango_inicio AND RA.rango_fin
-                      JOIN BI_DimTipoServicio TS ON TS.descripcion = (
-                              CASE 
-                                  WHEN V.nro_propuesta IS NOT NULL THEN 'Propuesta a Medida'
-                                  WHEN V.nro_propuesta IS NULL THEN 'Venta Directa'
-                              END)
-GO                           
+INSERT INTO BI_Hecho_Venta (
+    id_tiempo, id_canal_venta, id_rango_etario_cliente, 
+    id_rango_etario_agente, id_tipo_servicio, total_facturado, cantidad_ventas
+    )
+SELECT  T.id_Tiempo, CV2.id_Canal_Venta, RC.id_Rango_Etario, RA.id_Rango_Etario, 
+        TS.id_Tipo_Servicio, SUM(V.importe_total) AS total_facturado, COUNT(*) AS cantidad_ventas
+FROM PLATENSE.Venta V 
+    JOIN PLATENSE.Cliente C ON V.nro_cliente = C.nro_cliente
+    JOIN PLATENSE.Agente  A ON V.nro_agente = A.nro_legajo
+    JOIN PLATENSE.Canal_venta CV1 ON V.nro_canal_venta = CV1.nro_canal
+    JOIN BI_DimCanalVenta     CV2 ON CV1.nombre = CV2.descripcion
+    JOIN BI_DimTiempo       T  ON T.anio = YEAR(V.fecha) AND T.mes = MONTH(V.fecha)
+    JOIN BI_DimRangoEtario  RC ON DATEDIFF(YEAR, C.fecha_nacimiento, V.fecha) BETWEEN RC.rango_inicio AND RC.rango_fin
+    JOIN BI_DimRangoEtario  RA ON DATEDIFF(YEAR, A.fecha_nacimiento, V.fecha) BETWEEN RA.rango_inicio AND RA.rango_fin
+    JOIN BI_DimTipoServicio TS ON TS.descripcion = (
+          CASE 
+              WHEN V.nro_propuesta IS NOT NULL THEN 'Propuesta a Medida'
+              WHEN V.nro_propuesta IS NULL THEN 'Venta Directa'
+          END)
+GROUP BY T.id_Tiempo, CV2.id_Canal_Venta, RC.id_Rango_Etario, RA.id_Rango_Etario, TS.id_Tipo_Servicio;                          
 
-INSERT INTO BI_Hecho_Evaluacion (id_tiempo, id_aspecto, id_rango_etario_agente, puntaje)
-SELECT T.id_Tiempo, AXE.tipo_aspecto, R.id_Rango_Etario, AXE.puntaje
-FROM PLATENSE.Encuesta_Satisfaccion E JOIN PLATENSE.Agente A ON E.nro_agente = A.nro_legajo
-                                      JOIN PLATENSE.AspectoXEncuesta AXE ON E.nro_encuesta = AXE.nro_encuesta
-                                      JOIN BI_DimTiempo T ON T.anio = YEAR(E.fecha) AND T.mes = MONTH(E.fecha)
-                                      JOIN BI_DimRangoEtario R ON DATEDIFF(YEAR, A.fecha_nacimiento, E.fecha) BETWEEN R.rango_inicio AND R.rango_fin
-GO                                      
+INSERT INTO BI_Hecho_Evaluacion (
+    id_tiempo, id_aspecto, id_rango_etario_agente, suma_puntaje, cantidad_evaluaciones
+    )
+SELECT T.id_Tiempo, AXE.tipo_aspecto, R.id_Rango_Etario, SUM(AXE.puntaje) suma_puntaje, COUNT(*) cantidad_evaluaciones
+FROM PLATENSE.Encuesta_Satisfaccion E 
+    JOIN PLATENSE.Agente A   ON E.nro_agente = A.nro_legajo
+    JOIN PLATENSE.AspectoXEncuesta AXE ON E.nro_encuesta = AXE.nro_encuesta
+    JOIN BI_DimTiempo T      ON T.anio = YEAR(E.fecha) AND T.mes = MONTH(E.fecha)
+    JOIN BI_DimRangoEtario R ON DATEDIFF(YEAR, A.fecha_nacimiento, E.fecha) BETWEEN R.rango_inicio AND R.rango_fin
+GROUP BY T.id_Tiempo, AXE.tipo_aspecto, R.id_Rango_Etario;
+
                                       
-INSERT INTO BI_Hecho_Propuesta (id_tiempo, id_estado, id_temporada, id_rango_etario_agente,
-								importe, dias_transcurridos_emision, desvio_precio)
-SELECT T.id_Tiempo, P.nro_estado, TEMP.id_Temporada, R.id_Rango_Etario, P.importe_total,
-		DATEDIFF(DAY, S.fecha_solicitud, P.fecha_emision), (P.importe_total - S.presupuesto_estimado)
-FROM PLATENSE.Propuesta_Personalizada P JOIN PLATENSE.Solicitud_Cotizacion S ON P.nro_solicitud = S.nro_solicitud
-										JOIN PLATENSE.Agente A ON P.nro_agente = A.nro_legajo
-										JOIN BI_DimTiempo T ON YEAR(P.fecha_emision) = T.anio AND MONTH(P.fecha_emision) = T.mes
-										JOIN BI_DimTemporada TEMP ON TEMP.descripcion = 
-											CASE 
-												WHEN MONTH(P.fecha_desde) BETWEEN 1 AND 3 THEN 'Verano'
-												WHEN MONTH(P.fecha_desde) BETWEEN 4 AND 6 THEN 'Otoño'
-												WHEN MONTH(P.fecha_desde) BETWEEN 7 AND 9 THEN 'Invierno'
-												WHEN MONTH(P.fecha_desde) BETWEEN 10 AND 12 THEN 'Primavera'
-											END
-										JOIN BI_DimRangoEtario R ON 
-										DATEDIFF(YEAR, A.fecha_nacimiento, P.fecha_emision) BETWEEN R.rango_inicio AND R.rango_fin
-GO
+INSERT INTO BI_Hecho_Propuesta (
+    id_tiempo, id_estado, id_temporada, id_rango_etario_agente,
+    suma_importe, suma_dias_transcurridos, suma_desvio_precio, cantidad_propuestas
+    )
+SELECT T.id_Tiempo, P.nro_estado, TEMP.id_Temporada, R.id_Rango_Etario, SUM(P.importe_total) suma_importe,
+    SUM(DATEDIFF(DAY, S.fecha_solicitud, P.fecha_emision)) suma_dias_transcurridos,
+    SUM(P.importe_total - S.presupuesto_estimado) suma_desvio_precio,
+    COUNT(*) cantidad_propuestas
+FROM PLATENSE.Propuesta_Personalizada P 
+    JOIN PLATENSE.Solicitud_Cotizacion S ON P.nro_solicitud = S.nro_solicitud
+    JOIN PLATENSE.Agente A    ON P.nro_agente = A.nro_legajo
+    JOIN BI_DimTiempo T       ON YEAR(P.fecha_emision) = T.anio AND MONTH(P.fecha_emision) = T.mes
+    JOIN BI_DimTemporada TEMP ON TEMP.descripcion = (
+        CASE 
+            WHEN MONTH(P.fecha_desde) BETWEEN 1 AND 3 THEN 'Verano'
+            WHEN MONTH(P.fecha_desde) BETWEEN 4 AND 6 THEN 'Otoño'
+            WHEN MONTH(P.fecha_desde) BETWEEN 7 AND 9 THEN 'Invierno'
+            WHEN MONTH(P.fecha_desde) BETWEEN 10 AND 12 THEN 'Primavera'
+        END
+    )
+    JOIN BI_DimRangoEtario R ON DATEDIFF(YEAR, A.fecha_nacimiento, P.fecha_emision) BETWEEN R.rango_inicio AND R.rango_fin
+GROUP BY T.id_Tiempo, P.nro_estado, TEMP.id_Temporada, R.id_Rango_Etario;
 
 --------------------------VIEWS--------------------------
 DROP VIEW IF EXISTS BI_Ticket_Promedio
@@ -223,84 +244,129 @@ DROP VIEW IF EXISTS BI_Satisfacción_Promedio_Por_Agente
 GO
 
 CREATE VIEW BI_Ticket_Promedio AS
-SELECT T.anio, T.mes, R.descripcion AS rango_etario_cliente, C.descripcion canal_venta,
-        CAST(AVG(V.importe_total_venta* 1.0) AS DECIMAL(18, 2)) ticket_promedio 
-FROM BI_Hecho_Venta V JOIN BI_DimTiempo T ON (V.id_tiempo = T.id_Tiempo)
-                      JOIN BI_DimRangoEtario R ON (V.id_rango_etario_cliente = R.id_Rango_Etario)
-                      JOIN BI_DimCanalVenta C ON (V.id_canal_venta = C.id_Canal_Venta)
+SELECT
+    T.anio,
+    T.mes,
+    R.descripcion AS rango_etario_cliente,
+    C.descripcion AS canal_venta,
+    CAST(SUM(V.total_facturado) * 1.0 / SUM(V.cantidad_ventas) AS DECIMAL(18,2)) AS ticket_promedio
+FROM BI_Hecho_Venta V
+JOIN BI_DimTiempo T ON V.id_tiempo = T.id_Tiempo
+JOIN BI_DimRangoEtario R ON V.id_rango_etario_cliente = R.id_Rango_Etario
+JOIN BI_DimCanalVenta C ON V.id_canal_venta = C.id_Canal_Venta
 GROUP BY T.anio, T.mes, R.descripcion, C.descripcion;
 GO
 
 CREATE VIEW BI_Distribución_Facturación AS
-SELECT t.anio, t.cuatrimestre, s.descripcion, SUM(V.importe_total_venta) * 100.0 /
-    (SELECT SUM(V2.importe_total_venta) FROM BI_Hecho_Venta V2
-    JOIN BI_DimTiempo T2 ON V2.id_tiempo = T2.id_Tiempo
-    WHERE T2.anio = t.anio AND T2.cuatrimestre = t.cuatrimestre
-    ) AS porcentaje_facturacion    
-    FROM BI_Hecho_Venta v
-    JOIN BI_DimTiempo t ON (v.id_tiempo = t.id_Tiempo)
-    JOIN BI_DimTipoServicio s ON (v.id_tipo_servicio = s.id_Tipo_Servicio)
-GROUP BY t.anio, t.cuatrimestre, s.descripcion;
+SELECT
+    T.anio,
+    T.cuatrimestre,
+    S.descripcion,
+    SUM(V.total_facturado) * 100.0 /
+    (
+        SELECT SUM(V2.total_facturado)
+        FROM BI_Hecho_Venta V2
+        JOIN BI_DimTiempo T2 ON V2.id_tiempo = T2.id_Tiempo
+        WHERE T2.anio = T.anio
+          AND T2.cuatrimestre = T.cuatrimestre
+    ) AS porcentaje_facturacion
+FROM BI_Hecho_Venta V
+JOIN BI_DimTiempo T ON V.id_tiempo = T.id_Tiempo
+JOIN BI_DimTipoServicio S ON V.id_tipo_servicio = S.id_Tipo_Servicio
+GROUP BY T.anio, T.cuatrimestre, S.descripcion;
 GO
 
 CREATE VIEW BI_Ranking_Solicitudes_Por_Temporadas AS
-SELECT ti.anio, r.descripcion, t.descripcion AS temporada, COUNT(*) AS Cantidad_Solicitudes
-FROM BI_Hecho_Solicitud s JOIN BI_DimTemporada t ON (s.id_temporada = t.id_Temporada)
-                          JOIN BI_DimRangoEtario r ON s.id_rango_etario_cliente = r.id_Rango_Etario
-                          JOIN BI_DimTiempo ti ON (ti.id_Tiempo = s.id_tiempo)
-GROUP BY ti.anio, r.descripcion, t.descripcion;
+SELECT
+    TI.anio,
+    R.descripcion,
+    T.descripcion AS temporada,
+    SUM(S.cantidad_solicitudes) AS Cantidad_Solicitudes
+FROM BI_Hecho_Solicitud S
+JOIN BI_DimTemporada T ON S.id_temporada = T.id_Temporada
+JOIN BI_DimRangoEtario R ON S.id_rango_etario_cliente = R.id_Rango_Etario
+JOIN BI_DimTiempo TI ON S.id_tiempo = TI.id_Tiempo
+GROUP BY TI.anio, R.descripcion, T.descripcion;
 GO
 
 CREATE VIEW BI_Anticipación_Promedio_Solicitudes AS
-SELECT r.descripcion AS rango_etario_cliente, t.cuatrimestre, AVG(s.dias_anticipacion) AS Promedio_Dias_Anticipacion
-FROM BI_Hecho_Solicitud s JOIN BI_DimTiempo t ON (s.id_tiempo = t.id_Tiempo)
-                          JOIN BI_DimRangoEtario r ON s.id_rango_etario_cliente = r.id_Rango_Etario
-GROUP BY r.descripcion, t.cuatrimestre;
+SELECT
+    R.descripcion AS rango_etario_cliente,
+    T.cuatrimestre,
+    CAST(SUM(S.suma_dias_anticipacion) * 1.0 / SUM(S.cantidad_solicitudes) AS DECIMAL(18,2)) AS Promedio_Dias_Anticipacion
+FROM BI_Hecho_Solicitud S
+JOIN BI_DimTiempo T ON S.id_tiempo = T.id_Tiempo
+JOIN BI_DimRangoEtario R ON S.id_rango_etario_cliente = R.id_Rango_Etario
+GROUP BY R.descripcion, T.cuatrimestre;
 GO
 
-CREATE VIEW BI_Tasa_Aceptación_Propuestas AS 
-SELECT t.cuatrimestre, COUNT(CASE WHEN e.descripcion = 'Aceptado' THEN 1 END) * 100.0 / COUNT(*) AS tasa_aceptacion
-FROM BI_Hecho_Propuesta hp JOIN BI_DimTiempo t ON (hp.id_tiempo = t.id_Tiempo)
-                           JOIN BI_DimEstado e ON (hp.id_estado = e.id_Estado_Propuesta)
-GROUP BY t.cuatrimestre;
+CREATE VIEW BI_Tasa_Aceptación_Propuestas AS
+SELECT
+    T.cuatrimestre,
+    SUM(CASE WHEN E.descripcion = 'Aceptado' THEN HP.cantidad_propuestas ELSE 0 END) * 100.0
+    / SUM(HP.cantidad_propuestas) AS tasa_aceptacion
+FROM BI_Hecho_Propuesta HP
+JOIN BI_DimTiempo T ON HP.id_tiempo = T.id_Tiempo
+JOIN BI_DimEstado E ON HP.id_estado = E.id_Estado_Propuesta
+GROUP BY T.cuatrimestre;
 GO
 
 CREATE VIEW BI_Cotización_Promedio_Por_Temporada AS
-SELECT t.anio, te.descripcion AS temporada, AVG(hp.importe) AS cotizacion_promedio
-FROM BI_Hecho_Propuesta hp JOIN BI_DimTiempo t ON (hp.id_tiempo = t.id_Tiempo)
-                           JOIN BI_DimTemporada te ON (hp.id_temporada = te.id_Temporada)
-GROUP BY t.anio, te.descripcion;
+SELECT
+    T.anio,
+    TE.descripcion AS temporada,
+    CAST(SUM(HP.suma_importe) * 1.0 / SUM(HP.cantidad_propuestas) AS DECIMAL(18,2)) AS cotizacion_promedio
+FROM BI_Hecho_Propuesta HP
+JOIN BI_DimTiempo T ON HP.id_tiempo = T.id_Tiempo
+JOIN BI_DimTemporada TE ON HP.id_temporada = TE.id_Temporada
+GROUP BY T.anio, TE.descripcion;
 GO
 
 CREATE VIEW BI_Tiempo_Promedio_Respuesta AS
-SELECT t.mes, r.descripcion AS rango_etario_agente, AVG(hp.dias_transcurridos_emision) AS promedio_dias
-FROM BI_Hecho_Propuesta hp JOIN BI_DimTiempo t ON hp.id_tiempo = t.id_Tiempo
-                           JOIN BI_DimRangoEtario r ON hp.id_rango_etario_agente = r.id_Rango_Etario
-GROUP BY t.mes, r.descripcion;
+SELECT
+    T.mes,
+    R.descripcion AS rango_etario_agente,
+    CAST(SUM(HP.suma_dias_transcurridos) * 1.0 / SUM(HP.cantidad_propuestas) AS DECIMAL(18,2)) AS promedio_dias
+FROM BI_Hecho_Propuesta HP
+JOIN BI_DimTiempo T ON HP.id_tiempo = T.id_Tiempo
+JOIN BI_DimRangoEtario R ON HP.id_rango_etario_agente = R.id_Rango_Etario
+GROUP BY T.mes, R.descripcion;
 GO
 
 CREATE VIEW BI_Desvío_Presupuesto_Promedio AS
-SELECT T.anio, T.cuatrimestre, CAST(AVG(P.desvio_precio * 1.0) AS DECIMAL(18, 2)) desvio_presupuesto_promedio
-FROM BI_Hecho_Propuesta P JOIN BI_DimTiempo T ON (P.id_tiempo = T.id_Tiempo)
+SELECT
+    T.anio,
+    T.cuatrimestre,
+    CAST(SUM(P.suma_desvio_precio) * 1.0 / SUM(P.cantidad_propuestas) AS DECIMAL(18,2)) AS desvio_presupuesto_promedio
+FROM BI_Hecho_Propuesta P
+JOIN BI_DimTiempo T ON P.id_tiempo = T.id_Tiempo
 GROUP BY T.anio, T.cuatrimestre;
 GO
 
 CREATE VIEW BI_Ranking_Aspectos_Valorados AS
-SELECT T.anio, T.cuatrimestre, A.descripcion AS aspecto,
-        CAST(AVG(E.puntaje * 1.0) AS DECIMAL(18, 2)) puntaje_promedio,
-        RANK() OVER ( --No se puede usar un ORDER BY suelto al final para views 
-            PARTITION BY T.anio, T.cuatrimestre 
-            ORDER BY CAST(AVG(E.puntaje * 1.0) AS DECIMAL(18, 2)) DESC
-            ) posicion_ranking
-FROM BI_Hecho_Evaluacion E JOIN BI_DimTiempo T ON (E.id_tiempo = T.id_Tiempo)
-                           JOIN BI_DimAspecto A ON (E.id_aspecto = A.id_Aspecto)
-GROUP BY t.anio, T.cuatrimestre, A.descripcion;
+SELECT
+    T.anio,
+    T.cuatrimestre,
+    A.descripcion AS aspecto,
+    CAST(SUM(E.suma_puntaje) * 1.0 / SUM(E.cantidad_evaluaciones) AS DECIMAL(18,2)) AS puntaje_promedio,
+    RANK() OVER (
+        PARTITION BY T.anio, T.cuatrimestre
+        ORDER BY CAST(SUM(E.suma_puntaje) * 1.0 / SUM(E.cantidad_evaluaciones) AS DECIMAL(18,2)) DESC
+    ) AS posicion_ranking
+FROM BI_Hecho_Evaluacion E
+JOIN BI_DimTiempo T ON E.id_tiempo = T.id_Tiempo
+JOIN BI_DimAspecto A ON E.id_aspecto = A.id_Aspecto
+GROUP BY T.anio, T.cuatrimestre, A.descripcion;
 GO
 
 CREATE VIEW BI_Satisfacción_Promedio_Por_Agente AS
-SELECT T.anio, T.mes, R.descripcion AS rango_etario_agente,
-        CAST(AVG(E.puntaje * 1.0) AS DECIMAL(18, 2)) satisfaccion_promedio
-FROM BI_Hecho_Evaluacion E JOIN BI_DimTiempo T ON (E.id_tiempo = T.id_Tiempo)
-                           JOIN BI_DimRangoEtario R ON (E.id_rango_etario_agente = R.id_Rango_Etario)
+SELECT
+    T.anio,
+    T.mes,
+    R.descripcion AS rango_etario_agente,
+    CAST(SUM(E.suma_puntaje) * 1.0 / SUM(E.cantidad_evaluaciones) AS DECIMAL(18,2)) AS satisfaccion_promedio
+FROM BI_Hecho_Evaluacion E
+JOIN BI_DimTiempo T ON E.id_tiempo = T.id_Tiempo
+JOIN BI_DimRangoEtario R ON E.id_rango_etario_agente = R.id_Rango_Etario
 GROUP BY T.anio, T.mes, R.descripcion;
 GO
